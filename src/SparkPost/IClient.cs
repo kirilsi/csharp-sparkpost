@@ -36,6 +36,11 @@
         IWebhooks Webhooks { get; }
 
         /// <summary>
+        /// Gets access to the message events resource of the SparkPost API.
+        /// </summary>
+        IMessageEvents MessageEvents { get; }
+
+        /// <summary>
         /// Gets the API version supported by this client.
         /// </summary>
         string Version { get; }
@@ -44,5 +49,10 @@
         /// Get the custom settings for this client.
         /// </summary>
         Client.Settings CustomSettings { get; }
+
+        /// <summary>
+        /// Gets the sub account.
+        /// </summary>
+        long SubaccountId { get; }
     }
 }
