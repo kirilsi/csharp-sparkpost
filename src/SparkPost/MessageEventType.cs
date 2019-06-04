@@ -1,7 +1,7 @@
 ﻿namespace SparkPost
 {
     // Values taken from:
-    // https://developers.sparkpost.com/api/#/reference/message-events/message-events
+    // https://developers.sparkpost.com/api/events/
     // Additional values and descriptions taken from:
     // https://support.sparkpost.com/customer/portal/articles/1976204-webhook-event-reference
 

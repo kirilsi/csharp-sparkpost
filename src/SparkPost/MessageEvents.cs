@@ -28,7 +28,7 @@ namespace SparkPost
 
             var request = new Request
             {
-                Url = $"/api/{client.Version}/message-events",
+                Url = $"/api/{client.Version}/events/message",
                 Method = "GET",
                 Data = messageEventsQuery
             };
@@ -55,7 +55,7 @@ namespace SparkPost
         {
             var request = new Request
             {
-                Url = $"/api/{client.Version}/message-events/events/samples?events={events}",
+                Url = $"/api/{client.Version}/events/message/samples?events={events}",
                 Method = "GET"
             };
 
@@ -70,20 +70,12 @@ namespace SparkPost
             };
         }
 
-        private static IEnumerable<PageLink> ConvertToLinks(dynamic page_links)
+        private static PageLink ConvertToLinks(dynamic page_links)
         {
-            var links = new List<PageLink>();
+            var links = new PageLink();
 
-            if (page_links == null) return links;
+            if (page_links != null) links.Next = page_links.next;
 
-            foreach (var page_link in page_links)
-            {
-                links.Add(new PageLink
-                {
-                    Href = page_link.href,
-                    Type = page_link.rel
-                });
-            }
             return links;
         }
 
@@ -131,7 +123,6 @@ namespace SparkPost
                     QueueTime = result.queue_time,
                     RawRecipientTo = result.raw_rcpt_to,
                     SendingIp = result.sending_ip,
-                    TDate = result.tdate,
                     Transactional = result.transactional,
                     RemoteAddress = result.remote_addr,
                     Metadata = metadata,
