@@ -13,7 +13,7 @@ namespace SparkPost
             this.Events = new List<string>();
             this.BounceClasses = new List<string>();
             this.CampaignIds = new List<string>();
-            this.FriendlyFroms = new List<string>();
+            this.FromAddresses = new List<string>();
             this.MessageIds = new List<string>();
             this.Recipients = new List<string>();
             this.Subaccounts = new List<string>();
@@ -29,7 +29,7 @@ namespace SparkPost
         public IList<string> BounceClasses { get; set; }
 
         /// <summary>
-        /// campaign_ids : ? : (optional, string, `Example Campaign Name`) ... Comma-delimited list of campaign ID's to search (i.e. campaign_id used during creation of a transmission).
+        /// campaigns : ? : (optional, string, `Example Campaign Name`) ... Comma-delimited list of campaign ID's to search (i.e. campaign_id used during creation of a transmission).
         /// </summary>
         public IList<string> CampaignIds { get; set; }
 
@@ -40,9 +40,9 @@ namespace SparkPost
         public IList<string> Events { get; set; }
 
         /// <summary>
-        /// friendly_froms : ? : (optional, list, `sender@mail.example.com`) ... Comma-delimited list of friendly_froms to search.
+        /// from_addresses : ? : (optional, list, `sender@mail.example.com`) ... Comma-delimited list of friendly_froms to search.
         /// </summary>
-        public IList<string> FriendlyFroms { get; set; }
+        public IList<string> FromAddresses { get; set; }
 
         /// <summary>
         /// from : Datetime : Datetime in format of YYYY-MM-DDTHH:MM.
@@ -52,7 +52,7 @@ namespace SparkPost
         public DateTime? From { get; set; }
 
         /// <summary>
-        /// message_ids : List : Comma-delimited list of message ID's to search.
+        /// messages : List : Comma-delimited list of message ID's to search.
         /// Example: 0e0d94b7-9085-4e3c-ab30-e3f2cd9c273e.
         /// </summary>
         public IList<string> MessageIds { get; set; }
@@ -90,7 +90,7 @@ namespace SparkPost
         public IList<string> Subaccounts { get; set; }
 
         /// <summary>
-        /// template_ids : List : Comma-delimited list of template ID's to search.
+        /// templates : List : Comma-delimited list of template ID's to search.
         /// Example: templ-1234.
         /// </summary>
         public IList<string> TemplateIds { get; set; }
@@ -110,7 +110,7 @@ namespace SparkPost
         public DateTime? To { get; set; }
 
         /// <summary>
-        /// transmission_ids : List : Comma-delimited list of transmission ID's to search (i.e. id generated during creation of a transmission).
+        /// transmissions : List : Comma-delimited list of transmission ID's to search (i.e. id generated during creation of a transmission).
         /// Example: 65832150921904138.
         /// </summary>
         public IList<string> TransmissionIds { get; set; }
