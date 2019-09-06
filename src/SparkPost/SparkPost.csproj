@@ -42,6 +42,7 @@
     <Reference Include="System" />
     <Reference Include="System.Core" />
     <Reference Include="System.Design" />
+    <Reference Include="System.Runtime.Serialization" />
     <Reference Include="System.Web" />
     <Reference Include="System.Xml.Linq" />
     <Reference Include="System.Data.DataSetExtensions" />
@@ -52,20 +53,52 @@
   </ItemGroup>
   <ItemGroup>
     <Compile Include="Address.cs" />
+    <Compile Include="Attributes.cs" />
     <Compile Include="BounceCategory.cs" />
     <Compile Include="BounceClass.cs" />
     <Compile Include="BounceClassDetails.cs" />
     <Compile Include="BounceClassesDetails.cs" />
+    <Compile Include="CreateSendingDomainResponse.cs" />
+    <Compile Include="Dkim.cs" />
+    <Compile Include="Dns.cs" />
+    <Compile Include="GetMetricsResponse.cs" />
+    <Compile Include="GetMetricsResourceResponse.cs" />
+    <Compile Include="GetSendingDomainResponse.cs" />
     <Compile Include="IMessageEvents.cs" />
-    <Compile Include="IsoDateTimeMinuteConverter.cs" />
+    <Compile Include="IMetrics.cs" />
+    <Compile Include="IRecipientLists.cs" />
+    <Compile Include="ISendingDomains.cs" />
     <Compile Include="IValueMapper.cs" />
     <Compile Include="ListMessageEventsResponse.cs" />
+    <Compile Include="ListRelayWebhookResponse.cs" />
+    <Compile Include="ListInboundDomainResponse.cs" />
+    <Compile Include="ListSendingDomainResponse.cs" />
     <Compile Include="MessageEvent.cs" />
     <Compile Include="MessageEvents.cs" />
+    <Compile Include="MessageEventSampleResponse.cs" />
     <Compile Include="MessageEventsQuery.cs" />
     <Compile Include="MessageEventType.cs" />
+    <Compile Include="Metrics.cs" />
+    <Compile Include="MetricsQuery.cs" />
+    <Compile Include="MetricsField.cs" />
+    <Compile Include="MetricsResourceQuery.cs" />
     <Compile Include="PageLink.cs" />
+    <Compile Include="RecipientList.cs" />
+    <Compile Include="RecipientLists.cs" />
+    <Compile Include="RetrieveRecipientListsResponse.cs" />
+    <Compile Include="RetrieveRelayWebhookResponse.cs" />
+    <Compile Include="InboundDomainResponse.cs" />
+    <Compile Include="RetrieveTemplatesResponse.cs" />
+    <Compile Include="SendingDomain.cs" />
+    <Compile Include="SendingDomains.cs" />
+    <Compile Include="SendingDomainStatus.cs" />
+    <Compile Include="SendRecipientListsResponse.cs" />
+    <Compile Include="UpdateRecipientListResponse.cs" />
+    <Compile Include="UpdateSendingDomainResponse.cs" />
+    <Compile Include="Utilities\Jsonification.cs" />
+    <Compile Include="Utilities\MailMessageMapping.cs" />
     <Compile Include="Utilities\SnakeCase.cs" />
+    <Compile Include="Utilities\StringHelper.cs" />
     <Compile Include="ValueMappers\AnonymousValueMapper.cs" />
     <Compile Include="ValueMappers\BooleanValueMapper.cs" />
     <Compile Include="RequestSenders\AsyncRequestSender.cs" />
@@ -115,23 +148,39 @@
     <Compile Include="Suppressions.cs" />
     <Compile Include="SuppressionsQuery.cs" />
     <Compile Include="RequestSenders\SyncRequestSender.cs" />
+    <Compile Include="CreateTemplateResponse.cs" />
+    <Compile Include="ITemplates.cs" />
+    <Compile Include="RetrieveTemplateResponse.cs" />
+    <Compile Include="Template.cs" />
+    <Compile Include="TemplateContent.cs" />
+    <Compile Include="TemplateOptions.cs" />
+    <Compile Include="Templates.cs" />
     <Compile Include="Transmission.cs" />
     <Compile Include="Transmissions.cs" />
     <Compile Include="UpdateSubaccountResponse.cs" />
     <Compile Include="UpdateSuppressionResponse.cs" />
     <Compile Include="ValueMappers\DateTimeOffsetValueMapper.cs" />
+    <Compile Include="ValueMappers\DateTimeValueMapper.cs" />
     <Compile Include="ValueMappers\EnumerableValueMapper.cs" />
     <Compile Include="ValueMappers\EnumValueMapper.cs" />
     <Compile Include="ValueMappers\MapASetOfItemsUsingToDictionary.cs" />
     <Compile Include="ValueMappers\MapASingleItemUsingToDictionary.cs" />
     <Compile Include="ValueMappers\StringObjectDictionaryValueMapper.cs" />
     <Compile Include="ValueMappers\StringStringDictionaryValueMapper.cs" />
+    <Compile Include="RelayWebhook.cs" />
+    <Compile Include="InboundDomain.cs" />
+    <Compile Include="VerifySendingDomain.cs" />
+    <Compile Include="VerifySendingDomainResponse.cs" />
+    <Compile Include="VerifySendingDomainStatus.cs" />
     <Compile Include="Webhook.cs" />
+    <Compile Include="RelayWebhooks.cs" />
+    <Compile Include="InboundDomains.cs" />
     <Compile Include="Webhooks.cs" />
   </ItemGroup>
   <ItemGroup>
     <None Include="packages.config" />
   </ItemGroup>
+  <ItemGroup />
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
   <!-- To modify your build process, add your task inside one of the targets below and uncomment it. 
        Other similar extension points exist, see Microsoft.Common.targets.

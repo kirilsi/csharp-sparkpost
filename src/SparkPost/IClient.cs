@@ -41,6 +41,33 @@
         IMessageEvents MessageEvents { get; }
 
         /// <summary>
+        /// Gets access to the inbound domains resource of the SparkPost API.
+        /// </summary>
+        IInboundDomains InboundDomains { get; }
+
+        /// <summary>
+        /// Gets access to the sending domains resource of the SparkPost API.
+        /// </summary>
+        ISendingDomains SendingDomains { get; }
+        
+        /// <summary>
+        /// Gets access to the relay webhooks resource of the SparkPost API.
+        /// </summary>
+        IRelayWebhooks RelayWebhooks { get; }
+
+        IRecipientLists RecipientLists { get; }
+
+        /// <summary>
+        /// Gets access to the Templates resource of the SparkPost API.
+        /// </summary>
+        ITemplates Templates { get; }
+
+        /// <summary>
+        /// Gets access to the metrics resource of the SparkPost API.
+        /// </summary>
+        IMetrics Metrics { get; }
+
+        /// <summary>
         /// Gets the API version supported by this client.
         /// </summary>
         string Version { get; }

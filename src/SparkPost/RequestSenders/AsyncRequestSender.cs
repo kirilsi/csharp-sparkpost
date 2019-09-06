@@ -8,10 +8,12 @@ namespace SparkPost.RequestSenders
     public class AsyncRequestSender : IRequestSender
     {
         private readonly IClient client;
+        private readonly IDataMapper dataMapper;
 
-        public AsyncRequestSender(IClient client)
+        public AsyncRequestSender(IClient client, IDataMapper dataMapper)
         {
             this.client = client;
+            this.dataMapper = dataMapper;
         }
 
         public virtual async Task<Response> Send(Request request)
@@ -20,6 +22,8 @@ namespace SparkPost.RequestSenders
             {
                 httpClient.BaseAddress = new Uri(client.ApiHost);
                 httpClient.DefaultRequestHeaders.Add("Authorization", client.ApiKey);
+
+                SetTheUserAgentIfItIsProvided(httpClient);
 
                 if (client.SubaccountId != 0)
                     httpClient.DefaultRequestHeaders.Add("X-MSYS-SUBACCOUNT",
@@ -36,9 +40,15 @@ namespace SparkPost.RequestSenders
             }
         }
 
+        private void SetTheUserAgentIfItIsProvided(HttpClient httpClient)
+        {
+            if (string.IsNullOrEmpty(client.CustomSettings.UserAgent) == false)
+                httpClient.DefaultRequestHeaders.TryAddWithoutValidation("User-Agent", client.CustomSettings.UserAgent);
+        }
+
         protected virtual async Task<HttpResponseMessage> GetTheResponse(Request request, HttpClient httpClient)
         {
-            return await new RequestMethodFinder(httpClient)
+            return await new RequestMethodFinder(httpClient, dataMapper)
                 .FindFor(request)
                 .Execute(request);
         }

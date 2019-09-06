@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Linq;
 using NUnit.Framework;
 using Should;
+using SparkPost.ValueMappers;
 
 namespace SparkPost.Tests
 {
@@ -259,6 +260,16 @@ namespace SparkPost.Tests
             }
 
             [Test]
+            public void do_not_alter_the_keys_passed_to_metadata()
+            {
+                var key = "TEST";
+                var value = Guid.NewGuid().ToString();
+                transmission.Metadata[key] = value;
+                mapper.ToDictionary(transmission)["metadata"]
+                    .CastAs<IDictionary<string, object>>()[key].ShouldEqual(value);
+            }
+
+            [Test]
             public void do_not_include_empty_metadata()
             {
                 mapper.ToDictionary(transmission).Keys.ShouldNotContain("metadata");
@@ -323,14 +334,18 @@ namespace SparkPost.Tests
             private Transmission transmission;
             private DataMapper mapper;
 
-            [Test]
-            public void It_should_set_the_CC_Header_for_the_cc_emails()
+            [TestCase(true)]
+            [TestCase(false)]
+            public void It_should_set_the_CC_Header_for_only_the_cc_emails(bool useTo)
             {
                 var recipient1 = new Recipient {Type = RecipientType.CC, Address = new Address {Email = Guid.NewGuid().ToString()}};
-                var recipient2 = new Recipient {Type = RecipientType.To, Address = new Address {Email = Guid.NewGuid().ToString()}};
+                var recipient2 = new Recipient {Type = RecipientType.BCC, Address = new Address { Email = Guid.NewGuid().ToString()}};
                 var recipient3 = new Recipient {Type = RecipientType.CC, Address = new Address {Email = Guid.NewGuid().ToString()}};
+                var recipient4 = useTo 
+                        ? new Recipient { Type = RecipientType.To, Address = new Address { Email = Guid.NewGuid().ToString() } }
+                        : new Recipient();
 
-                transmission.Recipients = new List<Recipient> {recipient1, recipient2, recipient3};
+                transmission.Recipients = new List<Recipient> {recipient1, recipient2, recipient3, recipient4};
 
                 var cc = mapper.ToDictionary(transmission)
                     ["content"]
@@ -339,17 +354,21 @@ namespace SparkPost.Tests
                     .CastAs<IDictionary<string, string>>()
                     ["CC"];
 
-                cc.ShouldEqual("<" + recipient1.Address.Email + ">,<" + recipient3.Address.Email + ">");
+                cc.ShouldEqual(recipient1.Address.Email + ", " + recipient3.Address.Email);
             }
-
-            [Test]
-            public void It_should_not_overwrite_any_existing_headers()
+            
+            [TestCase(true)]
+            [TestCase(false)]
+            public void It_should_not_overwrite_any_existing_headers(bool useTo)
             {
                 var key = Guid.NewGuid().ToString();
                 var value = Guid.NewGuid().ToString();
 
                 var recipient1 = new Recipient {Type = RecipientType.CC, Address = new Address {Email = Guid.NewGuid().ToString()}};
-                transmission.Recipients = new List<Recipient> {recipient1};
+                var recipient2 = useTo
+                        ? new Recipient { Type = RecipientType.To, Address = new Address() }
+                        : new Recipient();
+                transmission.Recipients = new List<Recipient> {recipient1, recipient2};
 
                 transmission.Content.Headers[key] = value;
 
@@ -361,15 +380,19 @@ namespace SparkPost.Tests
                     [key].ShouldEqual(value);
             }
 
-            [Test]
-            public void It_should_not_set_the_cc_if_there_are_no_cc_emails()
+            [TestCase(true)]
+            [TestCase(false)]
+            public void It_should_not_set_the_cc_if_there_are_no_cc_emails(bool useTo)
             {
                 var key = Guid.NewGuid().ToString();
                 var value = Guid.NewGuid().ToString();
 
-                var recipient1 = new Recipient {Type = RecipientType.To, Address = new Address {Email = Guid.NewGuid().ToString()}};
+                var recipient1 = useTo
+                        ? new Recipient { Type = RecipientType.To, Address = new Address { Email = Guid.NewGuid().ToString() } }
+                        : new Recipient();
                 var recipient2 = new Recipient {Type = RecipientType.BCC, Address = new Address {Email = Guid.NewGuid().ToString()}};
-                transmission.Recipients = new List<Recipient> {recipient1, recipient2};
+                var recipient3 = new Recipient { Type = RecipientType.BCC, Address = new Address { Email = Guid.NewGuid().ToString() } };
+                transmission.Recipients = new List<Recipient> {recipient1, recipient2, recipient3};
 
                 transmission.Content.Headers[key] = value;
 
@@ -382,10 +405,13 @@ namespace SparkPost.Tests
                     .ShouldBeFalse();
             }
 
-            [Test]
-            public void It_should_not_set_a_header_value_if_there_are_no_ccs()
+            [TestCase(true)]
+            [TestCase(false)]
+            public void It_should_not_set_a_header_value_if_there_are_no_ccs(bool useTo)
             {
-                var recipient1 = new Recipient {Type = RecipientType.To, Address = new Address {Email = Guid.NewGuid().ToString()}};
+                var recipient1 = useTo
+                        ? new Recipient { Type = RecipientType.To, Address = new Address { Email = Guid.NewGuid().ToString() } }
+                        : new Recipient();
                 var recipient2 = new Recipient {Type = RecipientType.BCC, Address = new Address {Email = Guid.NewGuid().ToString()}};
                 transmission.Recipients = new List<Recipient> {recipient1, recipient2};
 
@@ -396,13 +422,34 @@ namespace SparkPost.Tests
                     .ShouldBeFalse();
             }
 
-            [Test]
-            public void It_should_ignore_empty_ccs()
+            [TestCase(true)]
+            [TestCase(false)]
+            public void It_should_ignore_empty_ccs(bool useTo)
             {
                 var recipient1 = new Recipient {Type = RecipientType.CC, Address = new Address {Email = ""}};
                 var recipient2 = new Recipient {Type = RecipientType.CC, Address = new Address {Email = null}};
                 var recipient3 = new Recipient {Type = RecipientType.CC, Address = new Address {Email = " "}};
-                transmission.Recipients = new List<Recipient> {recipient1, recipient2, recipient3};
+                var toRecipient = useTo
+                        ? new Recipient { Type = RecipientType.To, Address = new Address() }
+                        : new Recipient();
+                transmission.Recipients = new List<Recipient> {recipient1, recipient2, recipient3, toRecipient};
+
+                 mapper.ToDictionary(transmission)
+                    ["content"]
+                    .CastAs<IDictionary<string, object>>()
+                    .ContainsKey("headers")
+                    .ShouldBeFalse();
+            }
+
+            [TestCase(true)]
+            [TestCase(false)]
+            public void It_should_ignore_any_cc_recipients_with_no_address(bool useTo)
+            {
+                var recipient1 = new Recipient {Type = RecipientType.CC, Address = null};
+                var toRecipient = useTo
+                        ? new Recipient { Type = RecipientType.To, Address = new Address() }
+                        : new Recipient();
+                transmission.Recipients = new List<Recipient> {recipient1, toRecipient};
 
                  mapper.ToDictionary(transmission)
                     ["content"]
@@ -412,18 +459,107 @@ namespace SparkPost.Tests
             }
 
             [Test]
-            public void It_should_ignore_any_cc_recipients_with_no_address()
+            public void It_should_set_the_name_and_header_to_fields()
             {
-                var recipient1 = new Recipient {Type = RecipientType.CC, Address = null};
-                transmission.Recipients = new List<Recipient> {recipient1};
+                var toName = Guid.NewGuid().ToString();
+                var toEmail = Guid.NewGuid().ToString();
 
-                 mapper.ToDictionary(transmission)
-                    ["content"]
-                    .CastAs<IDictionary<string, object>>()
-                    .ContainsKey("headers")
-                    .ShouldBeFalse();
+                var toRecipient = new Recipient { Type = RecipientType.To, Address = new Address(toEmail, toName) };
+                var ccRecipient = new Recipient { Type = RecipientType.CC, Address = new Address() };
+                var bccRecipient = new Recipient { Type = RecipientType.BCC, Address = new Address() };
+                transmission.Recipients = new List<Recipient>() { toRecipient, ccRecipient, bccRecipient };
+
+                var addresses = mapper.ToDictionary(transmission)
+                        ["recipients"]
+                        .CastAs<IEnumerable<IDictionary<string, object>>>()
+                        .Select(r => r["address"])
+                        .Cast<IDictionary<string, object>>();
+
+                foreach (var address in addresses)
+                {
+                    address["name"].ShouldEqual(toName);
+                    address["header_to"].ShouldEqual(toEmail);
+                }
             }
 
+            [TestCase("Bob Jones", "bob@jones.com", "Bob Jones <bob@jones.com>")]
+            [TestCase(null, "bob@jones.com", "bob@jones.com")]
+            [TestCase("", "bob@jones.com", "bob@jones.com")]
+            [TestCase("Jones, Bob", "bob@jones.com", "\"Jones, Bob\" <bob@jones.com>")]
+            public void It_should_format_addresses_correctly(string name, string address, string result)
+            {
+                var recipient1 = new Recipient { Type = RecipientType.To, Address = new Address() };
+                var recipient2 = new Recipient { Type = RecipientType.CC, Address = new Address(address, name) };
+                transmission.Recipients = new List<Recipient> { recipient1, recipient2 };
+
+                mapper.ToDictionary(transmission)
+                    ["content"]
+                    .CastAs<IDictionary<string, object>>()
+                    ["headers"]
+                    .CastAs<IDictionary<string, string>>()
+                    ["CC"]
+                    .ShouldEqual(result);
+            }
+
+            [TestCase("Jones, Bob", "bob@jones.com ", "\"Jones, Bob\" <bob@jones.com>")]
+            [TestCase("Jones, Bob", " bob@jones.com", "\"Jones, Bob\" <bob@jones.com>")]
+            public void It_should_handle_white_space_in_the_email(string name, string address, string result)
+            {
+                var recipient1 = new Recipient { Type = RecipientType.To, Address = new Address() };
+                var recipient2 = new Recipient { Type = RecipientType.CC, Address = new Address(address, name) };
+                transmission.Recipients = new List<Recipient> { recipient1, recipient2 };
+
+                mapper.ToDictionary(transmission)
+                    ["content"]
+                    .CastAs<IDictionary<string, object>>()
+                    ["headers"]
+                    .CastAs<IDictionary<string, string>>()
+                    ["CC"]
+                    .ShouldEqual(result);
+            }
+
+            [TestCase(0)]
+            [TestCase(1)]
+            [TestCase(2)]
+            public void It_should_use_new_or_legacy_handling(int numOfTos)
+            {
+                var ccAddress = Guid.NewGuid().ToString();
+                transmission.Recipients.Add(new Recipient { Type = RecipientType.CC, Address = new Address(ccAddress) });
+
+                for (int i = 0; i < numOfTos; ++i)
+                {
+                    transmission.Recipients.Add(new Recipient { Type = RecipientType.To, Address = new Address("bob@example.com") });
+                }
+
+                var ccHeader = mapper.ToDictionary(transmission)
+                    ["content"]
+                    .CastAs<IDictionary<string, object>>()
+                    ["headers"]
+                    .CastAs<IDictionary<string, string>>()
+                    ["CC"];
+
+                if (numOfTos == 1)
+                    ccHeader.ShouldEqual(ccAddress);
+                else
+                    ccHeader.ShouldEqual($"<{ccAddress}>");
+            }
+
+            [Test]
+            public void It_should_use_legacy_handling_if_to_address_is_null()
+            {
+                var ccAddress = Guid.NewGuid().ToString();
+                transmission.Recipients.Add(new Recipient { Type = RecipientType.CC, Address = new Address(ccAddress) });
+                transmission.Recipients.Add(new Recipient { Type = RecipientType.To, Address = null });
+                
+                var ccHeader = mapper.ToDictionary(transmission)
+                    ["content"]
+                    .CastAs<IDictionary<string, object>>()
+                    ["headers"]
+                    .CastAs<IDictionary<string, string>>()
+                    ["CC"];
+
+                ccHeader.ShouldEqual($"<{ccAddress}>");
+            }
         }
 
         [TestFixture]
@@ -870,6 +1006,305 @@ namespace SparkPost.Tests
             {
                 var subaccount = new Subaccount { ComplianceStatus = Guid.NewGuid().ToString() };
                 dataMapper.ToDictionary(subaccount)["compliance_status"].ShouldEqual(subaccount.ComplianceStatus);
+            }
+        }
+
+        [TestFixture]
+        public class AnythingTests
+        {
+            [Test]
+            public void It_should_map_anything_using_our_conventions()
+            {
+                var dataMapper = new DataMapper();
+
+                var dateTime = new DateTime(2016, 1, 2, 3, 4, 5);
+
+                var result = dataMapper.CatchAll(new {FirstName = "Test1", LastName = "Test2", TheDate = dateTime});
+
+                result["first_name"].ShouldEqual("Test1");
+                result["last_name"].ShouldEqual("Test2");
+                ((string)result["the_date"]).Substring(0, 16).ShouldEqual("2016-01-02T03:04");
+            }
+        }
+
+        [TestFixture]
+        public class RelayWebhookTests
+        {
+            [SetUp]
+            public void Setup()
+            {
+                relayWebhook = new RelayWebhook();
+                mapper = new DataMapper("v1");
+            }
+
+            private RelayWebhook relayWebhook;
+            private DataMapper mapper;
+
+            [Test]
+            public void name()
+            {
+                var value = Guid.NewGuid().ToString();
+                relayWebhook.Name = value;
+                mapper.ToDictionary(relayWebhook)["name"].ShouldEqual(value);
+            }
+
+            [Test]
+            public void match_domain()
+            {
+                var value = Guid.NewGuid().ToString();
+                relayWebhook.Match = new RelayWebhookMatch {Domain = value};
+                mapper.ToDictionary(relayWebhook)["match"]
+                    .CastAs<IDictionary<string, object>>()
+                    ["domain"].ShouldEqual(value);
+            }
+
+            [Test]
+            public void match_protocol()
+            {
+                var value = Guid.NewGuid().ToString();
+                relayWebhook.Match = new RelayWebhookMatch {Protocol = value};
+                mapper.ToDictionary(relayWebhook)["match"]
+                    .CastAs<IDictionary<string, object>>()
+                    ["protocol"].ShouldEqual(value);
+            }
+        }
+
+        [TestFixture]
+        public class SendingDomainTests
+        {
+            private DataMapper mapper;
+            private SendingDomain sendingDomain;
+
+            [SetUp]
+            public void Setup()
+            {
+                sendingDomain = new SendingDomain();
+                mapper = new DataMapper("v1");
+            }
+
+            [Test]
+            public void Matches_on_status()
+            {
+                sendingDomain.Status = new SendingDomainStatus();
+                sendingDomain.Status.DkimStatus = DkimStatus.Pending;
+                mapper.ToDictionary(sendingDomain)["status"]
+                    .CastAs<IDictionary<string, object>>()
+                    ["dkim_status"]
+                    .CastAs<string>()
+                    .ShouldEqual("pending");
+            }
+
+            [Test]
+            public void Null_status_return_null()
+            {
+                sendingDomain.Status = null;
+                var dictionary = mapper.ToDictionary(sendingDomain);
+                dictionary
+                    .ContainsKey("status")
+                    .ShouldBeFalse();
+            }
+
+            [Test]
+            public void Matches_on_dkim()
+            {
+                var publicKey = Guid.NewGuid().ToString();
+                sendingDomain.Dkim = new Dkim { PublicKey = publicKey };
+                mapper.ToDictionary(sendingDomain)["dkim"]
+                    .CastAs<IDictionary<string, object>>()
+                    ["public_key"]
+                    .CastAs<string>()
+                    .ShouldEqual(publicKey);
+            }
+
+            [Test]
+            public void Null_dkim_is_is_not_returned()
+            {
+                sendingDomain.Dkim = null;
+                mapper.ToDictionary(sendingDomain)
+                    .ContainsKey("dkim")
+                    .ShouldBeFalse();
+            }
+        }
+
+        [TestFixture]
+        public class MetricsQueryTests
+        {
+            private DataMapper _mapper;
+            private MetricsQuery _query;
+            private string _timeFormat = "yyyy-MM-ddTHH:mm";
+
+            [SetUp]
+            public void Setup()
+            {
+                _query = new MetricsQuery();
+                _mapper = new DataMapper("v1");
+            }
+
+            [Test]
+            public void from()
+            {
+                var from = DateTime.Parse("2013-11-29 14:26");
+                _query.From = from;
+                var dict = _mapper.CatchAll(_query);
+                Assert.That(dict["from"].CastTo<string>(), Is.EqualTo(from.ToString(_timeFormat)));
+            }
+
+            [Test]
+            public void to()
+            {
+                var to = DateTime.Parse("2003-08-13 12:15");
+                _query.To = to;
+                var dict = _mapper.CatchAll(_query);
+                Assert.That(dict["to"].CastTo<string>(), Is.EqualTo(to.ToString(_timeFormat)));
+            }
+
+            [Test]
+            public void timezone()
+            {
+                var tz = Guid.NewGuid().ToString();
+                _query.Timezone = tz;
+                var dict = _mapper.CatchAll(_query);
+                Assert.That(dict["timezone"].CastTo<string>(), Is.EqualTo(tz));
+            }
+
+            [Test]
+            public void precision()
+            {
+                var p = Guid.NewGuid().ToString();
+                _query.Precision = p;
+                var dict = _mapper.CatchAll(_query);
+                Assert.That(dict["precision"].CastTo<string>(), Is.EqualTo(p));
+            }
+
+            [TestCase("apple")]
+            [TestCase("apple", "banana", "carrot")]
+            public void campaigns(params string[] list)
+            {
+                _query.Campaigns = list;
+                CheckList(list, "campaigns");
+            }
+
+            [TestCase("apple")]
+            [TestCase("apple", "banana", "carrot")]
+            public void domains(params string[] list)
+            {
+                _query.Domains = list;
+                CheckList(list, "domains");
+            }
+
+            [TestCase("apple")]
+            [TestCase("apple", "banana", "carrot")]
+            public void templates(params string[] list)
+            {
+                _query.Templates = list;
+                CheckList(list, "templates");
+            }
+
+            [TestCase("apple")]
+            [TestCase("apple", "banana", "carrot")]
+            public void sendingips(params string[] list)
+            {
+                _query.SendingIps = list;
+                CheckList(list, "sending_ips");
+            }
+
+            [TestCase("apple")]
+            [TestCase("apple", "banana", "carrot")]
+            public void ippools(params string[] list)
+            {
+                _query.IpPools = list;
+                CheckList(list, "ip_pools");
+            }
+
+            [TestCase("apple")]
+            [TestCase("apple", "banana", "carrot")]
+            public void sendingdomains(params string[] list)
+            {
+                _query.SendingDomains = list;
+                CheckList(list, "sending_domains");
+            }
+
+            [TestCase("apple")]
+            [TestCase("apple", "banana", "carrot")]
+            public void subaccounts(params string[] list)
+            {
+                _query.Subaccounts = list;
+                CheckList(list, "subaccounts");
+            }
+
+            [TestCase("apple")]
+            [TestCase("apple", "banana", "carrot")]
+            public void metrics(params string[] list)
+            {
+                _query.Metrics = list;
+                CheckList(list, "metrics");
+            }
+
+            private void CheckList(IList<string> list, string k)
+            {
+                var cat = String.Join(",", list);
+                var dict = _mapper.CatchAll(_query);
+                Assert.That(dict[k].CastTo<string>(), Is.EqualTo(cat));
+            }
+        }
+
+        [TestFixture]
+        public class MetricsResourceQueryTests
+        {
+            private DataMapper _mapper;
+            private MetricsResourceQuery _query;
+            private string _timeFormat = "yyyy-MM-ddTHH:mm";
+
+            [SetUp]
+            public void Setup()
+            {
+                _query = new MetricsResourceQuery();
+                _mapper = new DataMapper("v1");
+            }
+
+            [Test]
+            public void from()
+            {
+                var from = DateTime.Parse("2013-11-29 14:26");
+                _query.From = from;
+                var dict = _mapper.CatchAll(_query);
+                Assert.That(dict["from"].CastTo<string>(), Is.EqualTo(from.ToString(_timeFormat)));
+            }
+
+            [Test]
+            public void to()
+            {
+                var to = DateTime.Parse("2003-08-13 12:15");
+                _query.To = to;
+                var dict = _mapper.CatchAll(_query);
+                Assert.That(dict["to"].CastTo<string>(), Is.EqualTo(to.ToString(_timeFormat)));
+            }
+
+            [Test]
+            public void timezone()
+            {
+                var tz = Guid.NewGuid().ToString();
+                _query.Timezone = tz;
+                var dict = _mapper.CatchAll(_query);
+                Assert.That(dict["timezone"].CastTo<string>(), Is.EqualTo(tz));
+            }
+
+            [Test]
+            public void match()
+            {
+                var p = Guid.NewGuid().ToString();
+                _query.Match = p;
+                var dict = _mapper.CatchAll(_query);
+                Assert.That(dict["match"].CastTo<string>(), Is.EqualTo(p));
+            }
+
+            [Test]
+            public void limit()
+            {
+                var r = new Random().Next();
+                _query.Limit = r;
+                var dict = _mapper.CatchAll(_query);
+                Assert.That(dict["limit"].CastTo<int>(), Is.EqualTo(r));
             }
         }
     }
